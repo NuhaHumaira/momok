@@ -90,21 +90,26 @@ for (let phy_name, phy in board.wlan) {
 		if (length(info.radios) > 0)
 			id += `\nset ${s}.radio='${radio.index}'`;
 
+		let ssid = "OpenWrt";
+		if (band_name != '2g')
+			ssid = ssid + "_5G";
+
 		print(`set ${s}=wifi-device
 set ${s}.type='mac80211'
 set ${s}.${id}
 set ${s}.band='${band_name}'
 set ${s}.channel='${channel}'
 set ${s}.htmode='${htmode}'
-set ${s}.country='${country || "CN"}'
+set ${s}.country='${country || ''}'
 set ${s}.num_global_macaddr='${num_global_macaddr || ''}'
 set ${s}.disabled='0'
+set wireless.${name}.country='US'
 
 set ${si}=wifi-iface
 set ${si}.device='${name}'
 set ${si}.network='lan'
 set ${si}.mode='ap'
-set ${si}.ssid='${defaults?.ssid || "ImmortalWrt"}'
+set ${si}.ssid='${ssid}'
 set ${si}.encryption='${defaults?.encryption || "none"}'
 set ${si}.key='${defaults?.key || ""}'
 

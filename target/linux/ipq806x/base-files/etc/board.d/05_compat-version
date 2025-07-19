@@ -27,14 +27,13 @@ case "$(board_name)" in
 	qcom,ipq8064-ap148 |\
 	qcom,ipq8064-ap161 |\
 	qcom,ipq8064-db149 |\
-	ruijie,rg-mtfi-m520 |\
 	tplink,ad7200 |\
 	tplink,c2600 |\
 	tplink,vr2600v |\
-	xiaomi,mi-router-hd |\
 	zyxel,nbg6817 |\
 	asus,onhub |\
-	tplink,onhub)
+	tplink,onhub|\
+	xiaomi,mi-router-hd)
 		ucidef_set_compat_version "1.1"
 		;;
 	linksys,ea7500-v1 |\

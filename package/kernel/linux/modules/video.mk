@@ -63,7 +63,7 @@ $(eval $(call KernelPackage,acpi-video))
 define KernelPackage/backlight
 	SUBMENU:=$(VIDEO_MENU)
 	TITLE:=Backlight support
-	DEPENDS:=@DISPLAY_SUPPORT
+	DEPENDS:=@DISPLAY_SUPPORT +!LINUX_6_6:kmod-fb
 	HIDDEN:=1
 	KCONFIG:=CONFIG_BACKLIGHT_CLASS_DEVICE \
 		CONFIG_BACKLIGHT_LCD_SUPPORT=y \
@@ -102,7 +102,7 @@ $(eval $(call KernelPackage,backlight-pwm))
 define KernelPackage/fb
   SUBMENU:=$(VIDEO_MENU)
   TITLE:=Framebuffer and framebuffer console support
-  DEPENDS:=@DISPLAY_SUPPORT
+  DEPENDS:=@DISPLAY_SUPPORT +LINUX_6_6:kmod-fb-io-fops
   KCONFIG:= \
 	CONFIG_FB \
 	CONFIG_FB_DEVICE=y \
@@ -128,8 +128,7 @@ define KernelPackage/fb
 	CONFIG_VT_CONSOLE=y \
 	CONFIG_VT_HW_CONSOLE_BINDING=y
   FILES:=$(LINUX_DIR)/drivers/video/fbdev/core/fb.ko \
-	$(LINUX_DIR)/lib/fonts/font.ko \
-	$(LINUX_DIR)/drivers/video/fbdev/core/fb_io_fops.ko
+	$(LINUX_DIR)/lib/fonts/font.ko
   AUTOLOAD:=$(call AutoLoad,06,fb font)
 endef
 
@@ -138,8 +137,9 @@ define KernelPackage/fb/description
 endef
 
 define KernelPackage/fb/x86
-  FILES+=$(LINUX_DIR)/arch/x86/video/fbdev.ko
-  AUTOLOAD:=$(call AutoLoad,06,fbdev fb font)
+  FILES+=$(LINUX_DIR)/arch/x86/video/fbdev.ko@lt6.12 \
+	$(LINUX_DIR)/arch/x86/video/video-common.ko@ge6.12
+  AUTOLOAD:=$(call AutoLoad,06,fbdev@lt6.12 video-common@ge6.12 fb font)
 endef
 
 $(eval $(call KernelPackage,fb))
@@ -192,11 +192,25 @@ endef
 $(eval $(call KernelPackage,fb-cfb-imgblt))
 
 
+define KernelPackage/fb-io-fops
+  SUBMENU:=$(VIDEO_MENU)
+  TITLE:=Fbdev helpers for framebuffers in I/O memory
+  HIDDEN:=1
+  KCONFIG:=CONFIG_FB_IOMEM_FOPS
+  FILES:=$(LINUX_DIR)/drivers/video/fbdev/core/fb_io_fops.ko
+  AUTOLOAD:=$(call AutoLoad,07,fb_io_fops)
+endef
+
+$(eval $(call KernelPackage,fb-io-fops))
+
+
 define KernelPackage/fb-sys-fops
   SUBMENU:=$(VIDEO_MENU)
   TITLE:=Framebuffer software sys ops support
   DEPENDS:=+kmod-fb
-  KCONFIG:=CONFIG_FB_SYS_FOPS
+  KCONFIG:= \
+	CONFIG_FB_SYS_FOPS@lt6.12 \
+	CONFIG_FB_SYSMEM_FOPS@ge6.12
   FILES:=$(LINUX_DIR)/drivers/video/fbdev/core/fb_sys_fops.ko
   AUTOLOAD:=$(call AutoLoad,07,fb_sys_fops)
 endef
@@ -268,25 +282,6 @@ endef
 $(eval $(call KernelPackage,fb-tft-ili9486))
 
 
-define KernelPackage/multimedia-input
-  SUBMENU:=$(VIDEO_MENU)
-  TITLE:=Multimedia input support
-  DEPENDS:=+kmod-input-core
-  KCONFIG:=CONFIG_RC_CORE \
-	CONFIG_LIRC=y \
-	CONFIG_RC_DECODERS=y \
-	CONFIG_RC_DEVICES=y
-  FILES:=$(LINUX_DIR)/drivers/media/rc/rc-core.ko
-  AUTOLOAD:=$(call AutoProbe,rc-core)
-endef
-
-define KernelPackage/multimedia-input/description
-  Enable multimedia input.
-endef
-
-$(eval $(call KernelPackage,multimedia-input))
-
-
 define KernelPackage/drm
   SUBMENU:=$(VIDEO_MENU)
   TITLE:=Direct Rendering Manager (DRM) support
@@ -305,7 +300,6 @@ define KernelPackage/drm/description
 endef
 
 $(eval $(call KernelPackage,drm))
-
 
 define KernelPackage/drm-buddy
   SUBMENU:=$(VIDEO_MENU)
@@ -337,7 +331,6 @@ endef
 
 $(eval $(call KernelPackage,drm-display-helper))
 
-
 define KernelPackage/drm-exec
   SUBMENU:=$(VIDEO_MENU)
   HIDDEN:=1
@@ -353,19 +346,6 @@ define KernelPackage/drm-exec/description
 endef
 
 $(eval $(call KernelPackage,drm-exec))
-
-
-define KernelPackage/drm-gem-shmem-helper
-  SUBMENU:=$(VIDEO_MENU)
-  TITLE:=GEM shmem helper functions
-  DEPENDS:=@DISPLAY_SUPPORT +kmod-drm
-  KCONFIG:=CONFIG_DRM_GEM_SHMEM_HELPER
-  FILES:=$(LINUX_DIR)/drivers/gpu/drm/drm_shmem_helper.ko
-  AUTOLOAD:=$(call AutoProbe,drm_shmem_helper)
-endef
-
-$(eval $(call KernelPackage,drm-gem-shmem-helper))
-
 
 define KernelPackage/drm-dma-helper
   SUBMENU:=$(VIDEO_MENU)
@@ -420,7 +400,7 @@ define KernelPackage/drm-ttm-helper
   SUBMENU:=$(VIDEO_MENU)
   TITLE:=Helpers for ttm-based gem objects
   HIDDEN:=1
-  DEPENDS:=@DISPLAY_SUPPORT +kmod-drm-ttm
+  DEPENDS:=@DISPLAY_SUPPORT +kmod-drm-ttm +!LINUX_6_6:kmod-drm-kms-helper
   KCONFIG:=CONFIG_DRM_TTM_HELPER
   FILES:=$(LINUX_DIR)/drivers/gpu/drm/drm_ttm_helper.ko
   AUTOLOAD:=$(call AutoProbe,drm_ttm_helper)
@@ -462,6 +442,23 @@ define KernelPackage/drm-suballoc-helper/description
 endef
 
 $(eval $(call KernelPackage,drm-suballoc-helper))
+
+define KernelPackage/drm-vram-helper
+  SUBMENU:=$(VIDEO_MENU)
+  HIDDEN:=1
+  TITLE:=DRM helpers for VRAM memory management
+  DEPENDS:=@DISPLAY_SUPPORT \
+    +kmod-drm-kms-helper +kmod-drm-ttm-helper
+  KCONFIG:=CONFIG_DRM_VRAM_HELPER
+  FILES:=$(LINUX_DIR)/drivers/gpu/drm/drm_vram_helper.ko
+  AUTOLOAD:=$(call AutoProbe,drm_vram_helper)
+endef
+
+define KernelPackage/drm-vram-helper/description
+  DRM helpers for VRAM memory management.
+endef
+
+$(eval $(call KernelPackage,drm-vram-helper))
 
 define KernelPackage/drm-amdgpu
   SUBMENU:=$(VIDEO_MENU)
@@ -537,6 +534,20 @@ endef
 
 $(eval $(call KernelPackage,drm-i915))
 
+define KernelPackage/drm-ivpu
+  SUBMENU:=$(VIDEO_MENU)
+  TITLE:=Intel VPU DRM support
+  DEPENDS:=@TARGET_x86_64 +ivpu-firmware
+  KCONFIG:=CONFIG_DRM_ACCEL_IVPU
+  FILES:=$(LINUX_DIR)/drivers/accel/ivpu/intel_vpu.ko
+  AUTOLOAD:=$(call AutoProbe,intel_vpu)
+endef
+
+define KernelPackage/drm-ivpu/description
+  Direct Rendering Manager (DRM) support for Intel VPU
+endef
+
+$(eval $(call KernelPackage,drm-ivpu))
 
 define KernelPackage/drm-imx
   SUBMENU:=$(VIDEO_MENU)
@@ -615,45 +626,6 @@ endef
 
 $(eval $(call KernelPackage,drm-imx-ldb))
 
-define KernelPackage/drm-lima
-  SUBMENU:=$(VIDEO_MENU)
-  TITLE:=Mali-4xx GPU support
-  DEPENDS:=@(TARGET_rockchip||TARGET_sunxi) +kmod-drm +kmod-drm-gem-shmem-helper
-  KCONFIG:= \
-	CONFIG_DRM_VGEM \
-	CONFIG_DRM_GEM_CMA_HELPER=y \
-	CONFIG_DRM_LIMA
-  FILES:= \
-	$(LINUX_DIR)/drivers/gpu/drm/vgem/vgem.ko \
-	$(LINUX_DIR)/drivers/gpu/drm/scheduler/gpu-sched.ko \
-	$(LINUX_DIR)/drivers/gpu/drm/lima/lima.ko
-  AUTOLOAD:=$(call AutoProbe,lima vgem)
-endef
-
-define KernelPackage/drm-lima/description
-  Open-source reverse-engineered driver for Mali-4xx GPUs
-endef
-
-$(eval $(call KernelPackage,drm-lima))
-
-define KernelPackage/drm-panfrost
-  SUBMENU:=$(VIDEO_MENU)
-  TITLE:=DRM support for ARM Mali Midgard/Bifrost GPUs
-  DEPENDS:=@(TARGET_rockchip||TARGET_sunxi) +kmod-drm +kmod-drm-gem-shmem-helper
-  KCONFIG:=CONFIG_DRM_PANFROST
-  FILES:= \
-	$(LINUX_DIR)/drivers/gpu/drm/panfrost/panfrost.ko \
-	$(LINUX_DIR)/drivers/gpu/drm/scheduler/gpu-sched.ko
-  AUTOLOAD:=$(call AutoProbe,panfrost)
-endef
-
-define KernelPackage/drm-panfrost/description
-  DRM driver for ARM Mali Midgard (T6xx, T7xx, T8xx) and
-  Bifrost (G3x, G5x, G7x) GPUs
-endef
-
-$(eval $(call KernelPackage,drm-panfrost))
-
 define KernelPackage/drm-panel-mipi-dbi
   SUBMENU:=$(VIDEO_MENU)
   TITLE:=Generic MIPI DBI LCD panel
@@ -677,7 +649,8 @@ define KernelPackage/drm-radeon
   TITLE:=Radeon DRM support
   DEPENDS:=@TARGET_x86 @DISPLAY_SUPPORT +kmod-backlight +kmod-drm-kms-helper \
 	+kmod-drm-ttm +kmod-drm-ttm-helper +kmod-i2c-algo-bit +radeon-firmware \
-	+kmod-drm-display-helper +kmod-acpi-video +kmod-drm-suballoc-helper
+	+kmod-drm-display-helper +kmod-acpi-video +kmod-drm-suballoc-helper \
+	+!LINUX_6_6:kmod-fb-io-fops
   KCONFIG:=CONFIG_DRM_RADEON
   FILES:=$(LINUX_DIR)/drivers/gpu/drm/radeon/radeon.ko
   AUTOLOAD:=$(call AutoProbe,radeon)
@@ -1434,12 +1407,14 @@ define KernelPackage/video-coda
   TITLE:=i.MX VPU support
   DEPENDS:=@(TARGET_imx&&TARGET_imx_cortexa9) +kmod-video-mem2mem +kmod-video-dma-contig
   KCONFIG:= \
-	CONFIG_VIDEO_CODA \
-	CONFIG_VIDEO_IMX_VDOA
+  	CONFIG_VIDEO_CODA \
+  	CONFIG_VIDEO_IMX_VDOA
   FILES:= \
-	$(LINUX_DIR)/drivers/media/$(V4L2_MEM2MEM_DIR)/chips-media/coda-vpu.ko \
-	$(LINUX_DIR)/drivers/media/$(V4L2_MEM2MEM_DIR)/chips-media/imx-vdoa.ko \
-	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/v4l2-jpeg.ko
+  	$(LINUX_DIR)/drivers/media/$(V4L2_MEM2MEM_DIR)/chips-media/coda-vpu.ko@lt6.12 \
+  	$(LINUX_DIR)/drivers/media/$(V4L2_MEM2MEM_DIR)/chips-media/imx-vdoa.ko@lt6.12 \
+  	$(LINUX_DIR)/drivers/media/$(V4L2_MEM2MEM_DIR)/chips-media/coda/coda-vpu.ko@ge6.12 \
+  	$(LINUX_DIR)/drivers/media/$(V4L2_MEM2MEM_DIR)/chips-media/coda/imx-vdoa.ko@ge6.12 \
+ 	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/v4l2-jpeg.ko
   AUTOLOAD:=$(call AutoProbe,coda-vpu imx-vdoa v4l2-jpeg)
   $(call AddDepends/video)
 endef

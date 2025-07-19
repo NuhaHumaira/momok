@@ -60,7 +60,10 @@ define Build/grub-config
 		-e 's#@TERMINAL_CONFIG@#$(strip $(GRUB_TERMINAL_CONFIG))#g' \
 		-e 's#@ROOTPART@#root=$(ROOTPART) rootwait#g' \
 		-e 's#@GPT_ROOTPART@#root=$(GPT_ROOTPART) rootwait#g' \
-		-e 's#@CMDLINE@#$(BOOTOPTS) $(GRUB_CONSOLE_CMDLINE)#g' \
+		-e 's#@GRUB_SERIAL@#$(GRUB_SERIAL)#g' \
+		-e 's#@GRUB_BAUDRATE@#$(CONFIG_GRUB_BAUDRATE)#g' \
+		-e 's#@BOOTOPTS@#$(BOOTOPTS)#g' \
+		-e 's#@CONSOLE_CMDLINE@#$(GRUB_CONSOLE_CMDLINE)#g' \
 		-e 's#@TIMEOUT@#$(GRUB_TIMEOUT)#g' \
 		-e 's#@TITLE@#$(GRUB_TITLE)#g' \
 		./grub-$(1).cfg > $@.boot/boot/grub/grub.cfg
@@ -103,7 +106,6 @@ define Device/Default
   ARTIFACT/image.iso := grub-config iso | iso
   IMAGE/combined.img := grub-config pc | combined | grub-install | append-metadata
   IMAGE/combined.img.gz := grub-config pc | combined | grub-install | gzip | append-metadata
-  IMAGE/combined.qcow2 := grub-config pc | combined | grub-install | qemu-image qcow2
   IMAGE/combined.vdi := grub-config pc | combined | grub-install | qemu-image vdi
   IMAGE/combined.vmdk := grub-config pc | combined | grub-install | qemu-image vmdk
   IMAGE/combined.vhdx := grub-config pc | combined | grub-install | qemu-image vhdx -o subformat=dynamic
@@ -112,7 +114,6 @@ define Device/Default
   ARTIFACT/image-efi.iso := grub-config iso | iso efi
   IMAGE/combined-efi.img := grub-config efi | combined efi | grub-install efi | append-metadata
   IMAGE/combined-efi.img.gz := grub-config efi | combined efi | grub-install efi | gzip | append-metadata
-  IMAGE/combined-efi.qcow2 := grub-config efi | combined efi | grub-install efi | qemu-image qcow2
   IMAGE/combined-efi.vdi := grub-config efi | combined efi | grub-install efi | qemu-image vdi
   IMAGE/combined-efi.vmdk := grub-config efi | combined efi | grub-install efi | qemu-image vmdk
   IMAGE/combined-efi.vhdx := grub-config efi | combined efi | grub-install efi | qemu-image vhdx -o subformat=dynamic
@@ -131,10 +132,6 @@ define Device/Default
   ifeq ($(CONFIG_ISO_IMAGES),y)
     ARTIFACTS-$$(CONFIG_GRUB_IMAGES) += image.iso
     ARTIFACTS-$$(CONFIG_GRUB_EFI_IMAGES) += image-efi.iso
-  endif
-  ifeq ($(CONFIG_QCOW2_IMAGES),y)
-    IMAGES-$$(CONFIG_GRUB_IMAGES) += combined.qcow2
-    IMAGES-$$(CONFIG_GRUB_EFI_IMAGES) += combined-efi.qcow2
   endif
   ifeq ($(CONFIG_VDI_IMAGES),y)
     IMAGES-$$(CONFIG_GRUB_IMAGES) += combined.vdi

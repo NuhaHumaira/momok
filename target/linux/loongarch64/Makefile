@@ -11,12 +11,13 @@ FEATURES:=audio display ext4 pcie boot-part rootfs-part rtc usb targz
 SUBTARGETS:=generic
 
 KERNEL_PATCHVER:=6.6
+KERNEL_TESTING_PATCHVER:=6.12
 
 KERNELNAME:=vmlinuz.efi dtbs
 
 include $(INCLUDE_DIR)/target.mk
 
 DEFAULT_PACKAGES += \
-	partx-utils blkid fdisk automount grub2-efi-loongarch64
+	partx-utils blkid e2fsprogs grub2-efi-loongarch64
 
 $(eval $(call BuildTarget))

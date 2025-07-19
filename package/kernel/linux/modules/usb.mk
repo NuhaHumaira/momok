@@ -538,7 +538,7 @@ $(eval $(call KernelPackage,usb-dwc3-octeon))
 
 define KernelPackage/usb-dwc3-qcom
   TITLE:=DWC3 Qualcomm USB driver
-  DEPENDS:=@(TARGET_ipq40xx||TARGET_ipq806x||TARGET_qualcommax) +kmod-usb-dwc3
+  DEPENDS:=@(TARGET_ipq40xx||TARGET_ipq806x||TARGET_qualcommax||TARGET_qualcommbe) +kmod-usb-dwc3
   KCONFIG:= CONFIG_USB_DWC3_QCOM
   FILES:= $(LINUX_DIR)/drivers/usb/dwc3/dwc3-qcom.ko
   AUTOLOAD:=$(call AutoLoad,53,dwc3-qcom,1)
@@ -1034,6 +1034,21 @@ endef
 $(eval $(call KernelPackage,usb-serial-qualcomm))
 
 
+define KernelPackage/usb-serial-xr
+  TITLE:=Support for MaxLinear/Exar USB to Serial devices
+  KCONFIG:=CONFIG_USB_SERIAL_XR
+  FILES:=$(LINUX_DIR)/drivers/usb/serial/xr_serial.ko
+  AUTOLOAD:=$(call AutoProbe,xr_serial)
+  $(call AddDepends/usb-serial)
+endef
+
+define KernelPackage/usb-serial-xr/description
+ Kernel support for MaxLinear/Exar USB to Serial converter devices
+endef
+
+$(eval $(call KernelPackage,usb-serial-xr))
+
+
 define KernelPackage/usb-storage
   TITLE:=USB Storage support
   DEPENDS:= +kmod-scsi-core
@@ -1179,7 +1194,7 @@ define KernelPackage/usb-net
   TITLE:=Kernel modules for USB-to-Ethernet convertors
   DEPENDS:=+kmod-mii
   KCONFIG:=CONFIG_USB_USBNET \
-	CONFIG_USB_NET_DRIVERS
+	CONFIG_USB_NET_DRIVERS@lt6.12
   AUTOLOAD:=$(call AutoProbe,usbnet)
   FILES:=$(LINUX_DIR)/drivers/$(USBNET_DIR)/usbnet.ko
   $(call AddDepends/usb)
@@ -1200,7 +1215,6 @@ endef
 
 define KernelPackage/usb-net-aqc111
   TITLE:=Support for USB-to-Ethernet Aquantia AQtion 5/2.5GbE
-  DEPENDS:=+kmod-libphy
   KCONFIG:=CONFIG_USB_NET_AQC111
   FILES:=$(LINUX_DIR)/drivers/$(USBNET_DIR)/aqc111.ko
   AUTOLOAD:=$(call AutoProbe,aqc111)
@@ -1453,11 +1467,11 @@ $(eval $(call KernelPackage,usb-net-rtl8150))
 
 define KernelPackage/usb-net-rtl8152
   TITLE:=Kernel module for USB-to-Ethernet Realtek convertors
-  DEPENDS:=+r8152-firmware +kmod-crypto-sha256 +kmod-usb-net-cdc-ncm
+  DEPENDS:=+r8152-firmware +kmod-crypto-sha256 +kmod-mii +!LINUX_6_6:kmod-libphy
   KCONFIG:=CONFIG_USB_RTL8152
   FILES:=$(LINUX_DIR)/drivers/$(USBNET_DIR)/r8152.ko
   AUTOLOAD:=$(call AutoProbe,r8152)
-  $(call AddDepends/usb-net)
+  $(call AddDepends/usb)
 endef
 
 define KernelPackage/usb-net-rtl8152/description
@@ -1809,10 +1823,7 @@ define KernelPackage/usb3
 	+TARGET_bcm53xx:kmod-usb-bcma \
 	+TARGET_bcm53xx:kmod-phy-bcm-ns-usb3 \
 	+TARGET_ramips_mt7621:kmod-usb-xhci-mtk \
-	+TARGET_mediatek:kmod-usb-xhci-mtk \
-	+TARGET_apm821xx_nand:kmod-usb-xhci-pci-renesas \
-	+TARGET_lantiq_xrx200:kmod-usb-xhci-pci-renesas \
-	+TARGET_mvebu_cortexa9:kmod-usb-xhci-pci-renesas
+	+TARGET_mediatek:kmod-usb-xhci-mtk
   KCONFIG:= \
 	CONFIG_USB_PCI=y \
 	CONFIG_USB_XHCI_PCI \
@@ -1899,8 +1910,8 @@ $(eval $(call KernelPackage,usb-xhci-mtk))
 
 define KernelPackage/usb-xhci-pci-renesas
   TITLE:=Support for additional Renesas xHCI controller with firmware
+  DEPENDS:=+kmod-usb3
   KCONFIG:=CONFIG_USB_XHCI_PCI_RENESAS
-  HIDDEN:=1
   FILES:=$(LINUX_DIR)/drivers/usb/host/xhci-pci-renesas.ko
   AUTOLOAD:=$(call AutoLoad,54,xhci-pci-renesas,1)
   $(call AddDepends/usb)

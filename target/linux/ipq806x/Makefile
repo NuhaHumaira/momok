@@ -20,7 +20,8 @@ DEFAULT_PACKAGES += \
 	kmod-ata-ahci kmod-ata-ahci-platform \
 	kmod-usb-ohci kmod-usb2 kmod-usb-ledtrig-usbport \
 	kmod-phy-qcom-ipq806x-usb kmod-usb3 kmod-usb-dwc3-qcom \
-	kmod-ath10k-ct wpad-openssl uboot-envtools \
-	automount autocore luci-app-cpufreq
+	kmod-ath10k-ct wpad-basic-mbedtls \
+	uboot-envtools \
+	autocore-arm
 
 $(eval $(call BuildTarget))

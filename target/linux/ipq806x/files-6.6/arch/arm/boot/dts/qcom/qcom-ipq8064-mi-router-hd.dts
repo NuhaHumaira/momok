@@ -6,7 +6,7 @@
 #include <dt-bindings/leds/common.h>
 
 / {
-	model = "Xiaomi Mi Router HD";
+	model = "Xiaomi Mi Router HD (R3D)";
 	compatible = "xiaomi,mi-router-hd", "qcom,ipq8064";
 
 	memory@0 {
@@ -15,9 +15,13 @@
 	};
 
 	reserved-memory {
-		rsvd@44600000 {
-			reg = <0x44600000 0x200000>; /* IPQ_TZ_APPS_ADDR */
-			no-map;
+		ramoops@42100000 {
+			compatible = "ramoops";
+			reg = <0x42100000 0x40000>;
+			record-size = <0x4000>;
+			console-size = <0x4000>;
+			ftrace-size = <0x4000>;
+			pmsg-size = <0x4000>;
 		};
 	};
 
@@ -50,7 +54,7 @@
 		};
 
 		power {
-			label = "power"; /* Labeled POWER on the device, but using for sleep mode */
+			label = "power";
 			gpios = <&qcom_pinmux 68 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_POWER>;
 			debounce-interval = <60>;
@@ -82,7 +86,7 @@
 		};
 	};
 
-	i2c_gpio_0 { // GSBI1
+	i2c_gpio_0 {  /* GSBI1 */
 		compatible = "i2c-gpio";
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -101,7 +105,7 @@
 		};
 	};
 
-	i2c_gpio_1 { // GSBI2
+	i2c_gpio_1 {  /* GSBI2 */
 		compatible = "i2c-gpio";
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -111,20 +115,15 @@
 		scl-gpios = <&qcom_pinmux 25 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 		i2c-gpio,delay-us = <5>;
 
-		tmp75@48 {
+		temp-sensor@48 {
 			compatible = "ti,tmp75";
 			reg = <0x48>;
-			#address-cells = <1>;
-			#size-cells = <0>;
 			#thermal-sensor-cells = <0>;
 			status = "okay";
 		};
 	};
 };
 
-// https://github.com/openwrt/openwrt/commit/622ce713ca246aa465bf28d2a743f96999085ea2
-// https://github.com/openwrt/openwrt/commit/2336c2dbb1929837f7e42d4315c8073342a5b46b
-// https://forum.openwrt.org/t/failed-to-startup-an-ipq806x-router-on-kernel-5-4/60775/41
 &CPU_SPC {
 	status = "disabled";
 };
@@ -134,7 +133,7 @@
 };
 
 &qcom_pinmux {
-	i2c1_pins: i2c1_pins { // GSBI1 - EMC2301
+	i2c1_pins: i2c1_pins {  /* GSBI1 - EMC2301 */
 		mux {
 			pins = "gpio53", "gpio54";
 			function = "gsbi1";
@@ -144,7 +143,7 @@
 		};
 	};
 
-	i2c2_pins: i2c2_pins { // GSBI2 - TMP75
+	i2c2_pins: i2c2_pins {  /* GSBI2 - TMP75 */
 		mux {
 			pins = "gpio24", "gpio25";
 			function = "gsbi2";
@@ -230,11 +229,11 @@
 		ranges;
 
 		wifi@1,0 {
-			compatible = "pci168c,0040";
+			compatible = "pci168c,0046";
 			reg = <0x00010000 0 0 0 0>;
 
-			nvmem-cells = <&macaddr_art_1006 0>, <&precal_art_1000>;
-			nvmem-cell-names = "mac-address", "pre-calibration";
+			nvmem-cells = <&precal_art_1000>, <&macaddr_art_1006>;
+			nvmem-cell-names = "pre-calibration", "mac-address";
 		};
 	};
 };
@@ -256,10 +255,10 @@
 			compatible = "pci168c,0040";
 			reg = <0x00010000 0 0 0 0>;
 
-			nvmem-cells = <&macaddr_art_5006 0>, <&precal_art_5000>;
-			nvmem-cell-names = "mac-address", "pre-calibration";
+			nvmem-cells = <&precal_art_5000>, <&macaddr_art_5006>;
+			nvmem-cell-names = "pre-calibration", "mac-address";
 		};
-	};
+	};  
 };
 
 &nand {
@@ -274,7 +273,7 @@
 		nand-ecc-step-size = <512>;
 
 		nand-is-boot-medium;
-		qcom,boot-partitions = <0x0 0xf0000000>;
+		qcom,boot-partitions = <0 0xf0000000>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -350,28 +349,22 @@
 					#address-cells = <1>;
 					#size-cells = <1>;
 
-					macaddr_art_0: macaddr@0 {
+					macaddr_art_0: macaddr@0 {  /* WAN (label) */
 						compatible = "mac-base";
 						reg = <0x0 0x6>;
 						#nvmem-cell-cells = <1>;
 					};
 
-					macaddr_art_6: macaddr@6 {
-						compatible = "mac-base";
+					macaddr_art_6: macaddr@6 {  /* LAN */
 						reg = <0x6 0x6>;
-						#nvmem-cell-cells = <1>;
 					};
 
-					macaddr_art_1006: macaddr@1006 {
-						compatible = "mac-base";
+					macaddr_art_1006: macaddr@1006 {  /* WiFi 2g */
 						reg = <0x1006 0x6>;
-						#nvmem-cell-cells = <1>;
 					};
 
-					macaddr_art_5006: macaddr@5006 {
-						compatible = "mac-base";
+					macaddr_art_5006: macaddr@5006 {  /* WiFi 5g */
 						reg = <0x5006 0x6>;
-						#nvmem-cell-cells = <1>;
 					};
 
 					precal_art_1000: precal@1000 {
@@ -413,7 +406,6 @@
 				read-only;
 			};
 
-			/* Stock U-Boot support Dual Boot */
 			partition@800000 {
 				label = "kernel_dup";
 				reg = <0x800000 0x400000>;
@@ -518,6 +510,10 @@
 
 			phy_port3: phy@2 {
 				reg = <2>;
+			};
+
+			phy_port4: phy@3 {
+				reg = <3>;
 			};
 
 			phy_port5: phy@4 {

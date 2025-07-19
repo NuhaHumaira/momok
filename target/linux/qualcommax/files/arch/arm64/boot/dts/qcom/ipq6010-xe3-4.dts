@@ -3,8 +3,9 @@
 /dts-v1/;
 
 #include "ipq6018.dtsi"
-#include "ipq6018-fixed-smps.dtsi"
 #include "ipq6018-ess.dtsi"
+#include "ipq6018-nss.dtsi"
+#include "ipq6018-common.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
@@ -16,7 +17,6 @@
 
 	aliases {
 		serial0 = &blsp1_uart3;
-		sdhc2 = &sdhc_1;
 		ethernet0 = &dp5;
 		ethernet1 = &dp4;
 		label-mac-device = &dp5;
@@ -145,21 +145,12 @@
 	};
 };
 
-&pcie_phy {
-	status = "okay";
-};
-
 &pcie0 {
 	status = "okay";
 	perst-gpio = <&tlmm 60 GPIO_ACTIVE_LOW>;
 
-	bridge@0,0 {
-		reg = <0x00000000 0 0 0 0>;
-		#address-cells = <3>;
-		#size-cells = <2>;
-		ranges;
-
-		wifi@1,0 {
+	pcie@0 {
+		wifi@0,0 {
 			status = "okay";
 
 			/* ath11k has no DT compatible for PCI cards */
@@ -172,7 +163,7 @@
 	};
 };
 
-&sdhc_1 {
+&sdhc {
 	pinctrl-0 = <&sd_pins>;
 	pinctrl-names = "default";
 	status = "okay";
@@ -395,10 +386,6 @@
 	};
 };
 
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -443,12 +430,4 @@
 
 	nvmem-cell-names = "mac-address";
 	nvmem-cells = <&eth2addr>;
-};
-
-&qusb_phy_1 {
-	status = "okay";
-};
-
-&usb2 {
-	status = "okay";
 };

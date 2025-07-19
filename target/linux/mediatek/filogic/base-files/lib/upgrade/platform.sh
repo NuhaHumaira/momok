@@ -1,5 +1,5 @@
 REQUIRE_IMAGE_METADATA=1
-RAMFS_COPY_BIN='fitblk'
+RAMFS_COPY_BIN='fitblk fit_check_sign'
 
 asus_initial_setup()
 {
@@ -67,22 +67,19 @@ platform_do_upgrade() {
 
 	case "$board" in
 	abt,asr3000|\
+	asus,zenwifi-bt8-ubootmod|\
 	bananapi,bpi-r3|\
 	bananapi,bpi-r3-mini|\
 	bananapi,bpi-r4|\
+	bananapi,bpi-r4-2g5|\
 	bananapi,bpi-r4-poe|\
-	cetron,ct3003-ubootmod|\
 	cmcc,a10-ubootmod|\
 	cmcc,rax3000m|\
-	cmcc,rax3000me|\
 	cudy,tr3000-v1-ubootmod|\
 	gatonetworks,gdsp|\
 	h3c,magic-nx30-pro|\
-	imou,lc-hx3001|\
 	jcg,q30-pro|\
 	jdcloud,re-cp-03|\
-	konka,komi-a31|\
-	livinet,zr-3020-ubootmod|\
 	mediatek,mt7981-rfb|\
 	mediatek,mt7988a-rfb|\
 	mercusys,mr90x-v1-ubi|\
@@ -93,6 +90,7 @@ platform_do_upgrade() {
 	netcore,n60-pro|\
 	qihoo,360t7|\
 	routerich,ax3000-ubootmod|\
+ 	snr,snr-cpe-ax2|\
 	tplink,tl-xdr4288|\
 	tplink,tl-xdr6086|\
 	tplink,tl-xdr6088|\
@@ -111,7 +109,8 @@ platform_do_upgrade() {
 	glinet,gl-mt6000|\
 	glinet,gl-x3000|\
 	glinet,gl-xe3000|\
-	huasifei,wh3000-emmc|\
+	huasifei,wh3000|\
+	huasifei,wh3000-pro|\
 	smartrg,sdg-8612|\
 	smartrg,sdg-8614|\
 	smartrg,sdg-8622|\
@@ -126,7 +125,8 @@ platform_do_upgrade() {
 	asus,rt-ax52|\
 	asus,rt-ax59u|\
 	asus,tuf-ax4200|\
-	asus,tuf-ax6000)
+	asus,tuf-ax6000|\
+	asus,zenwifi-bt8)
 		CI_UBIPART="UBI_DEV"
 		CI_KERNPART="linux"
 		nand_do_upgrade "$1"
@@ -148,10 +148,21 @@ platform_do_upgrade() {
 		;;
 	mercusys,mr80x-v3|\
 	mercusys,mr90x-v1|\
-	tplink,archer-ax80-v1|\
 	tplink,re6000xd)
 		CI_UBIPART="ubi0"
 		nand_do_upgrade "$1"
+		;;
+	tplink,fr365-v1)
+		CI_UBIPART="ubi"
+		CI_KERNPART="kernel"
+		CI_ROOTPART="rootfs"
+		nand_do_upgrade "$1"
+		;;
+	nradio,c8-668gl)
+		CI_DATAPART="rootfs_data"
+		CI_KERNPART="kernel_2nd"
+		CI_ROOTPART="rootfs_2nd"
+		emmc_do_upgrade "$1"
 		;;
 	ubnt,unifi-6-plus)
 		CI_KERNPART="kernel0"
@@ -192,21 +203,52 @@ PART_NAME=firmware
 
 platform_check_image() {
 	local board=$(board_name)
-	local magic="$(get_magic_long "$1")"
 
 	[ "$#" -gt 1 ] && return 1
 
 	case "$board" in
+	abt,asr3000|\
+	asus,zenwifi-bt8-ubootmod|\
 	bananapi,bpi-r3|\
 	bananapi,bpi-r3-mini|\
 	bananapi,bpi-r4|\
+	bananapi,bpi-r4-2g5|\
 	bananapi,bpi-r4-poe|\
+	cmcc,a10-ubootmod|\
 	cmcc,rax3000m|\
-	cmcc,rax3000me)
-		[ "$magic" != "d00dfeed" ] && {
+	cudy,tr3000-v1-ubootmod|\
+	gatonetworks,gdsp|\
+	h3c,magic-nx30-pro|\
+	jcg,q30-pro|\
+	jdcloud,re-cp-03|\
+	mediatek,mt7981-rfb|\
+	mediatek,mt7988a-rfb|\
+	mercusys,mr90x-v1-ubi|\
+	nokia,ea0326gmp|\
+	openwrt,one|\
+	netcore,n60|\
+	qihoo,360t7|\
+	routerich,ax3000-ubootmod|\
+	tplink,tl-xdr4288|\
+	tplink,tl-xdr6086|\
+	tplink,tl-xdr6088|\
+	tplink,tl-xtr8488|\
+	xiaomi,mi-router-ax3000t-ubootmod|\
+	xiaomi,redmi-router-ax6000-ubootmod|\
+	xiaomi,mi-router-wr30u-ubootmod|\
+	zyxel,ex5601-t0-ubootmod)
+		fit_check_image "$1"
+		return $?
+		;;
+	nradio,c8-668gl)
+		# tar magic `ustar`
+		magic="$(dd if="$1" bs=1 skip=257 count=5 2>/dev/null)"
+
+		[ "$magic" != "ustar" ] && {
 			echo "Invalid image type."
 			return 1
 		}
+
 		return 0
 		;;
 	*)
@@ -220,6 +262,17 @@ platform_check_image() {
 
 platform_copy_config() {
 	case "$(board_name)" in
+	bananapi,bpi-r3|\
+	bananapi,bpi-r3-mini|\
+	bananapi,bpi-r4|\
+	bananapi,bpi-r4-2g5|\
+	bananapi,bpi-r4-poe|\
+	cmcc,rax3000m|\
+	mediatek,mt7988a-rfb)
+		if [ "$CI_METHOD" = "emmc" ]; then
+			emmc_copy_config
+		fi
+		;;
 	acer,predator-w6|\
 	acer,predator-w6d|\
 	acer,vero-w6m|\
@@ -228,8 +281,10 @@ platform_copy_config() {
 	glinet,gl-mt6000|\
 	glinet,gl-x3000|\
 	glinet,gl-xe3000|\
-	huasifei,wh3000-emmc|\
+	huasifei,wh3000|\
+	huasifei,wh3000-pro|\
 	jdcloud,re-cp-03|\
+	nradio,c8-668gl|\
 	smartrg,sdg-8612|\
 	smartrg,sdg-8614|\
 	smartrg,sdg-8622|\
@@ -239,16 +294,6 @@ platform_copy_config() {
 	smartrg,sdg-8734|\
 	ubnt,unifi-6-plus)
 		emmc_copy_config
-		;;
-	bananapi,bpi-r3|\
-	bananapi,bpi-r3-mini|\
-	bananapi,bpi-r4|\
-	bananapi,bpi-r4-poe|\
-	cmcc,rax3000m|\
-	cmcc,rax3000me)
-		if [ "$CI_METHOD" = "emmc" ]; then
-			emmc_copy_config
-		fi
 		;;
 	esac
 }
@@ -260,7 +305,8 @@ platform_pre_upgrade() {
 	asus,rt-ax52|\
 	asus,rt-ax59u|\
 	asus,tuf-ax4200|\
-	asus,tuf-ax6000)
+	asus,tuf-ax6000|\
+	asus,zenwifi-bt8)
 		asus_initial_setup
 		;;
 	xiaomi,mi-router-ax3000t|\

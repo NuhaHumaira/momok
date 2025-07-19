@@ -74,6 +74,7 @@ platform_do_upgrade() {
 	asus,rt-ac85p|\
 	asus,rt-ax53u|\
 	asus,rt-ax54|\
+	asus,4g-ax56|\
 	beeline,smartbox-flash|\
 	beeline,smartbox-giga|\
 	beeline,smartbox-pro|\
@@ -148,7 +149,6 @@ platform_do_upgrade() {
 	xiaomi,mi-router-cr6609|\
 	xiaomi,redmi-router-ac2100|\
 	z-router,zr-2660|\
-	zte,e8820s|\
 	zyxel,nwa50ax|\
 	zyxel,nwa55axe)
 		nand_do_upgrade "$1"
@@ -196,6 +196,7 @@ platform_do_upgrade() {
 		;;
 	zyxel,lte3301-plus|\
 	zyxel,lte5398-m904|\
+	zyxel,lte7490-m904|\
 	zyxel,nr7101)
 		fw_setenv CheckBypass 0
 		fw_setenv Image1Stable 0
